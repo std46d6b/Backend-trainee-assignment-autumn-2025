@@ -6,7 +6,7 @@ type TeamMember struct {
 	IsActive bool
 }
 
-type TeamUpset struct {
+type TeamUpsert struct {
 	Name    TeamName
 	Members []TeamMember
 }

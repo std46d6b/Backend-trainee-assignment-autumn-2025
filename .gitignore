@@ -43,3 +43,4 @@ data/docker
 
 # Private data
 .env
+tmp

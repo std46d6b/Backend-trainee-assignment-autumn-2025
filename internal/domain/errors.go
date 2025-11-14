@@ -19,3 +19,10 @@ type DomainError struct {
 func (e *DomainError) Error() string {
 	return string(e.Code) + ": " + e.Message
 }
+
+func NewDomainError(code ErrorCode, message string) *DomainError {
+	return &DomainError{
+		Code:    code,
+		Message: message,
+	}
+}
