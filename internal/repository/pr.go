@@ -8,7 +8,8 @@ import (
 
 type PullRequestRepository interface {
 	InsertPullRequest(ctx context.Context, pullRequest domain.PullRequest) error
+	GetByID(ctx context.Context, pullRequestID domain.PullRequestID) (domain.PullRequest, error)
 	AddReviewer(ctx context.Context, pullRequestID domain.PullRequestID, reviewerID domain.UserID) error
-	ClearReviewers(ctx context.Context, pullRequestID domain.PullRequestID) error
+	RemoveReviewer(ctx context.Context, pullRequestID domain.PullRequestID, reviewerID domain.UserID) error
 	MergePullRequest(ctx context.Context, pullRequest domain.PullRequest) error
 }

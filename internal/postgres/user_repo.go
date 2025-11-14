@@ -92,7 +92,14 @@ func (r *UserRepo) SetIsActive(ctx context.Context, userID domain.UserID, isActi
 
 func (r *UserRepo) ListReviewPRs(ctx context.Context, userID domain.UserID) ([]domain.PullRequest, error) {
 	query := psql.
-		Select("pr.pull_request_id", "pr.pull_request_name", "pr.author_id", "pr.status").
+		Select(
+			"pr.pull_request_id",
+			"pr.pull_request_name",
+			"pr.author_id",
+			"pr.status",
+			"pr.created_at",
+			"pr.merged_at",
+		).
 		From("assigned_reviewers ar").
 		Where("ar.user_id = ?", userID).
 		Join("pull_requests pr ON pr.pull_request_id = ar.pull_request_id").
@@ -114,7 +121,7 @@ func (r *UserRepo) ListReviewPRs(ctx context.Context, userID domain.UserID) ([]d
 
 	for rows.Next() {
 		var pr domain.PullRequest
-		err = rows.Scan(&pr.ID, &pr.Name, &pr.AuthorID, &pr.Status)
+		err = rows.Scan(&pr.ID, &pr.Name, &pr.AuthorID, &pr.Status, &pr.CreatedAt, &pr.MergedAt)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning pull request: %w", err)
 		}

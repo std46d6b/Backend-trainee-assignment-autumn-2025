@@ -20,3 +20,10 @@ type PullRequest struct {
 	CreatedAt         time.Time
 	MergedAt          *time.Time
 }
+
+type PullRequestShort struct {
+	ID       PullRequestID
+	Name     string
+	AuthorID UserID
+	Status   PullRequestStatus
+}
