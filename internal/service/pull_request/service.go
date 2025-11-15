@@ -1,4 +1,4 @@
-package prsvc
+package pullrequestservice
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/domain"
-	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/postgres"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/repository"
+	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/store/postgres"
 )
 
 type TxManager interface {
@@ -51,7 +51,7 @@ func shuffleTeamMembers(teamMembers []domain.TeamMember) []domain.TeamMember {
 	return res
 }
 
-func (s *PullRequestService) getTeamByUserID(ctx context.Context, exec postgres.Execer, userID domain.UserID) (domain.TeamUpsert, error) {
+func (s *PullRequestService) getTeamByUserID(ctx context.Context, exec postgres.Execer, userID string) (domain.TeamUpsert, error) {
 	localUserRepo := s.repoFact.UserRepository(exec)
 
 	pull_request_author, err := localUserRepo.GetByID(ctx, userID)
@@ -61,7 +61,7 @@ func (s *PullRequestService) getTeamByUserID(ctx context.Context, exec postgres.
 
 	localTeamRepo := s.repoFact.TeamRepository(exec)
 
-	team, err := localTeamRepo.GetTeamWithMembers(ctx, pull_request_author.Team)
+	team, err := localTeamRepo.GetTeamWithMembers(ctx, pull_request_author.TeamName)
 	if err != nil {
 		return domain.TeamUpsert{}, fmt.Errorf("get team: %w", err)
 	}
@@ -137,7 +137,7 @@ func (s *PullRequestService) CreatePullRequest(ctx context.Context, pr domain.Pu
 }
 
 // POST /pullRequest/merge
-func (s *PullRequestService) MergePullRequest(ctx context.Context, prID domain.PullRequestID) (domain.PullRequest, error) {
+func (s *PullRequestService) MergePullRequest(ctx context.Context, prID string) (domain.PullRequest, error) {
 	var pullRequest domain.PullRequest
 
 	err := s.txManager.TxWrapper(ctx, func(ctx context.Context, tx pgx.Tx) error {
@@ -172,9 +172,9 @@ func (s *PullRequestService) MergePullRequest(ctx context.Context, prID domain.P
 }
 
 // POST /pullRequest/reassign
-func (s *PullRequestService) ReassignPullRequest(ctx context.Context, prID domain.PullRequestID, oldReviewerID domain.UserID) (domain.PullRequest, domain.UserID, error) {
+func (s *PullRequestService) ReassignPullRequest(ctx context.Context, prID string, oldReviewerID string) (domain.PullRequest, string, error) {
 	var pullRequest domain.PullRequest
-	var reassignedUserID domain.UserID
+	var reassignedUserID string
 
 	err := s.txManager.TxWrapper(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		localUserRepo := s.repoFact.UserRepository(tx)

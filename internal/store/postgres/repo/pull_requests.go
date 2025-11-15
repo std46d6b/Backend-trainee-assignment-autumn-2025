@@ -1,4 +1,4 @@
-package postgres
+package postgresrepo
 
 import (
 	"context"
@@ -8,18 +8,19 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/domain"
+	pg "github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/store/postgres"
 )
 
 type PullRequestRepo struct {
-	exec Execer
+	exec pg.Execer
 }
 
-func NewPullRequestRepo(exec Execer) *PullRequestRepo {
+func NewPullRequestRepo(exec pg.Execer) *PullRequestRepo {
 	return &PullRequestRepo{exec: exec}
 }
 
 func (r *PullRequestRepo) InsertPullRequest(ctx context.Context, pullRequest domain.PullRequest) error {
-	query := psql.
+	query := pg.Psql.
 		Insert("pull_requests").
 		Columns("pull_request_id", "pull_request_name", "author_id").
 		Values(pullRequest.ID, pullRequest.Name, pullRequest.AuthorID)
@@ -45,8 +46,8 @@ func (r *PullRequestRepo) InsertPullRequest(ctx context.Context, pullRequest dom
 	return nil
 }
 
-func (r *PullRequestRepo) getPRBodyData(ctx context.Context, pullRequestID domain.PullRequestID) (domain.PullRequest, error) {
-	query := psql.
+func (r *PullRequestRepo) getPRBodyData(ctx context.Context, pullRequestID string) (domain.PullRequest, error) {
+	query := pg.Psql.
 		Select(
 			"pull_request_id",
 			"pull_request_name",
@@ -85,7 +86,7 @@ func (r *PullRequestRepo) getPRBodyData(ctx context.Context, pullRequestID domai
 }
 
 func (r *PullRequestRepo) addReviewersIDs(ctx context.Context, pullRequest domain.PullRequest) (domain.PullRequest, error) {
-	query := psql.
+	query := pg.Psql.
 		Select("user_id").
 		From("assigned_reviewers").
 		Where("pull_request_id = ?", pullRequest.ID)
@@ -103,7 +104,7 @@ func (r *PullRequestRepo) addReviewersIDs(ctx context.Context, pullRequest domai
 	defer rows.Close()
 
 	for rows.Next() {
-		var reviewerID domain.UserID
+		var reviewerID string
 		err := rows.Scan(&reviewerID)
 		if err != nil {
 			return domain.PullRequest{}, fmt.Errorf("error scanning row: %w", err)
@@ -114,7 +115,7 @@ func (r *PullRequestRepo) addReviewersIDs(ctx context.Context, pullRequest domai
 	return pullRequest, nil
 }
 
-func (r *PullRequestRepo) GetByID(ctx context.Context, pullRequestID domain.PullRequestID) (domain.PullRequest, error) {
+func (r *PullRequestRepo) GetByID(ctx context.Context, pullRequestID string) (domain.PullRequest, error) {
 	pullRequestBase, err := r.getPRBodyData(ctx, pullRequestID)
 	if err != nil {
 		return domain.PullRequest{}, err
@@ -128,8 +129,8 @@ func (r *PullRequestRepo) GetByID(ctx context.Context, pullRequestID domain.Pull
 	return pullREquest, nil
 }
 
-func (r *PullRequestRepo) AddReviewer(ctx context.Context, pullRequestID domain.PullRequestID, reviewerID domain.UserID) error {
-	query := psql.
+func (r *PullRequestRepo) AddReviewer(ctx context.Context, pullRequestID string, reviewerID string) error {
+	query := pg.Psql.
 		Insert("assigned_reviewers").
 		Columns("pull_request_id", "user_id").
 		Values(pullRequestID, reviewerID)
@@ -151,8 +152,8 @@ func (r *PullRequestRepo) AddReviewer(ctx context.Context, pullRequestID domain.
 	return nil
 }
 
-func (r *PullRequestRepo) RemoveReviewer(ctx context.Context, pullRequestID domain.PullRequestID, reviewerID domain.UserID) error {
-	query := psql.
+func (r *PullRequestRepo) RemoveReviewer(ctx context.Context, pullRequestID string, reviewerID string) error {
+	query := pg.Psql.
 		Delete("assigned_reviewers").
 		Where("pull_request_id = ?", pullRequestID).
 		Where("user_id = ?", reviewerID)
@@ -175,7 +176,7 @@ func (r *PullRequestRepo) RemoveReviewer(ctx context.Context, pullRequestID doma
 }
 
 func (r *PullRequestRepo) MergePullRequest(ctx context.Context, pullRequest domain.PullRequest) error {
-	query := psql.
+	query := pg.Psql.
 		Update("pull_requests").
 		Set("status", pullRequest.Status).
 		Set("merged_at", pullRequest.MergedAt).

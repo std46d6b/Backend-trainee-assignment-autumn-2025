@@ -7,6 +7,6 @@ import (
 )
 
 type TeamRepository interface {
-	InsertTeam(ctx context.Context, teamName domain.TeamName) error
-	GetTeamWithMembers(ctx context.Context, teamName domain.TeamName) (domain.TeamUpsert, error)
+	InsertTeam(ctx context.Context, teamName string) error
+	GetTeamWithMembers(ctx context.Context, teamName string) (domain.TeamUpsert, error)
 }

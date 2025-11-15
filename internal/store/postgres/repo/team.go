@@ -1,4 +1,4 @@
-package postgres
+package postgresrepo
 
 import (
 	"context"
@@ -8,18 +8,19 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/domain"
+	pg "github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/store/postgres"
 )
 
 type TeamRepo struct {
-	exec Execer
+	exec pg.Execer
 }
 
-func NewTeamRepo(exec Execer) *TeamRepo {
+func NewTeamRepo(exec pg.Execer) *TeamRepo {
 	return &TeamRepo{exec: exec}
 }
 
-func (r *TeamRepo) InsertTeam(ctx context.Context, teamName domain.TeamName) error {
-	query := psql.
+func (r *TeamRepo) InsertTeam(ctx context.Context, teamName string) error {
+	query := pg.Psql.
 		Insert("teams").
 		Columns("team_name").
 		Values(teamName)
@@ -41,8 +42,8 @@ func (r *TeamRepo) InsertTeam(ctx context.Context, teamName domain.TeamName) err
 	return nil
 }
 
-func (r *TeamRepo) GetTeamWithMembers(ctx context.Context, teamName domain.TeamName) (domain.TeamUpsert, error) {
-	query := psql.
+func (r *TeamRepo) GetTeamWithMembers(ctx context.Context, teamName string) (domain.TeamUpsert, error) {
+	query := pg.Psql.
 		Select("u.user_id", "u.username", "u.is_active").
 		From("teams t").
 		LeftJoin("users u ON u.team_name = t.team_name").
@@ -81,7 +82,7 @@ func (r *TeamRepo) GetTeamWithMembers(ctx context.Context, teamName domain.TeamN
 
 		if memberUserID.Valid {
 			members = append(members, domain.TeamMember{
-				UserID:   domain.UserID(memberUserID.String),
+				UserID:   memberUserID.String,
 				Username: memberUsername.String,
 				IsActive: memberIsActive.Bool,
 			})

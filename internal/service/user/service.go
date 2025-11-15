@@ -1,4 +1,4 @@
-package usersvc
+package userservice
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/domain"
-	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/postgres"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/repository"
+	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/store/postgres"
 )
 
 type TxManager interface {
@@ -37,7 +37,7 @@ func NewUserService(
 }
 
 // POST /users/setIsActive
-func (s *UserService) SetIsActive(ctx context.Context, userID domain.UserID, isActive bool) (domain.User, error) {
+func (s *UserService) SetIsActive(ctx context.Context, userID string, isActive bool) (domain.User, error) {
 	var dbUser domain.User
 
 	err := s.txManager.TxWrapper(ctx, func(ctx context.Context, tx pgx.Tx) error {
@@ -64,7 +64,7 @@ func (s *UserService) SetIsActive(ctx context.Context, userID domain.UserID, isA
 }
 
 // GET /users/getReview
-func (s *UserService) ListReviewPRs(ctx context.Context, userID domain.UserID) ([]domain.PullRequest, error) {
+func (s *UserService) ListReviewPRs(ctx context.Context, userID string) ([]domain.PullRequest, error) {
 	locaUserRepo := s.repoFact.UserRepository(s.readExec)
 
 	pullRequests, err := locaUserRepo.ListReviewPRs(ctx, userID)

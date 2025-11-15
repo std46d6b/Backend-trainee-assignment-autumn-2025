@@ -1,10 +1,8 @@
 package domain
 
-type UserID string
-
 type User struct {
-	ID       UserID
+	ID       string
 	Username string
-	Team     TeamName
+	TeamName string
 	IsActive bool
 }

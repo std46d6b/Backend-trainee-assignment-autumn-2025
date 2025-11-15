@@ -2,8 +2,6 @@ package domain
 
 import "time"
 
-type PullRequestID string
-
 type PullRequestStatus string
 
 const (
@@ -12,18 +10,18 @@ const (
 )
 
 type PullRequest struct {
-	ID                PullRequestID
+	ID                string
 	Name              string
-	AuthorID          UserID
+	AuthorID          string
 	Status            PullRequestStatus
-	AssignedReviewers []UserID
+	AssignedReviewers []string
 	CreatedAt         time.Time
 	MergedAt          *time.Time
 }
 
 type PullRequestShort struct {
-	ID       PullRequestID
+	ID       string
 	Name     string
-	AuthorID UserID
+	AuthorID string
 	Status   PullRequestStatus
 }

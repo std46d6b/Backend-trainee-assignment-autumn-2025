@@ -1,4 +1,4 @@
-package teamsvc
+package teamservice
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/domain"
-	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/postgres"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/repository"
+	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/store/postgres"
 )
 
 type TxManager interface {
@@ -52,7 +52,7 @@ func (s *TeamService) CreateTeam(ctx context.Context, up domain.TeamUpsert) (dom
 			upsUser := domain.User{
 				ID:       member.UserID,
 				Username: member.Username,
-				Team:     up.Name,
+				TeamName: up.Name,
 				IsActive: member.IsActive,
 			}
 
@@ -73,7 +73,7 @@ func (s *TeamService) CreateTeam(ctx context.Context, up domain.TeamUpsert) (dom
 }
 
 // GET /team/get
-func (s *TeamService) GetTeamWithMembers(ctx context.Context, teamName domain.TeamName) (domain.TeamUpsert, error) {
+func (s *TeamService) GetTeamWithMembers(ctx context.Context, teamName string) (domain.TeamUpsert, error) {
 	localTeamRepo := s.repoFact.TeamRepository(s.readExec)
 
 	domainTeam, err := localTeamRepo.GetTeamWithMembers(ctx, teamName)

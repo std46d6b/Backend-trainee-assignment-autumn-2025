@@ -1,19 +1,17 @@
 package domain
 
-type TeamName string
-
 type Team struct {
-	Name    TeamName
-	Members []UserID
+	Name    string
+	Members []string
 }
 
 type TeamMember struct {
-	UserID   UserID
+	UserID   string
 	Username string
 	IsActive bool
 }
 
 type TeamUpsert struct {
-	Name    TeamName
+	Name    string
 	Members []TeamMember
 }

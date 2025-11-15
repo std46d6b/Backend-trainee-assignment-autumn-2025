@@ -22,8 +22,8 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./migrations/sql:/migrations/sql
-    command: ["-path", "/migrations/sql", "-database", "${DATABASE_URL}", "up"]
+      - ./migrations:/migrations
+    command: ["-path", "/migrations", "-database", "${DATABASE_URL}", "up"]
     environment:
       DATABASE_URL: ${DATABASE_URL}
     restart: "no"
