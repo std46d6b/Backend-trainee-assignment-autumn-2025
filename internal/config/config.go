@@ -10,6 +10,7 @@ import (
 type Config struct {
 	DBConfig        *DBConfig
 	WebServerConfig *WebServerConfig
+	AuthConfig      *AuthConfig
 }
 
 type DBConfig struct {
@@ -24,6 +25,11 @@ type WebServerConfig struct {
 	Port    int
 
 	ShutdownTimeout time.Duration
+}
+
+type AuthConfig struct {
+	AdminToken string
+	UserToken  string
 }
 
 func envOnly(key string) (string, error) {
@@ -77,9 +83,15 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	authCfg, err := loadAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		DBConfig:        dbCfg,
 		WebServerConfig: webServerCfg,
+		AuthConfig:      authCfg,
 	}, nil
 }
 
@@ -132,5 +144,22 @@ func loadWebServerConfig() (*WebServerConfig, error) {
 		Address:         webServerAddress,
 		Port:            webServerPort,
 		ShutdownTimeout: time.Duration(shutdownTimeoutInSeconds) * time.Second,
+	}, nil
+}
+
+func loadAuthConfig() (*AuthConfig, error) {
+	adminToken, err := envOnly("ADMIN_TOKEN")
+	if err != nil {
+		return nil, err
+	}
+
+	userToken, err := envOnly("USER_TOKEN")
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthConfig{
+		AdminToken: adminToken,
+		UserToken:  userToken,
 	}, nil
 }

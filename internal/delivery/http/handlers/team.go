@@ -16,8 +16,8 @@ type TeamService interface {
 }
 
 func RegisterTeamRoutes(e *echo.Group, s TeamService) {
-	e.POST("/team/add", createTeamHandler(s))
-	e.GET("/team/get", getTeamHandler(s))
+	e.POST("/team/add", deliveryhttp.AdminOnlyMiddleware(createTeamHandler(s)))
+	e.GET("/team/get", deliveryhttp.AdminOrUserMiddleware(getTeamHandler(s)))
 }
 
 // createTeamHandler handles POST /team/add.
