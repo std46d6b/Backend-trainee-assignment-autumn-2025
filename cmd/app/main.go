@@ -22,7 +22,7 @@ import (
 func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal(err)
+		log.Println("no .env file found, using environment only")
 	}
 
 	cfg, err := config.Load()
