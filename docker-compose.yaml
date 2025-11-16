@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/docker:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  migrate:
+    image: migrate/migrate:v4.19.0
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command: ["-path", "/migrations", "-database", "${DATABASE_URL}", "up"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      MAX_CONNS: ${MAX_CONNS}
+      MIN_CONNS: ${MIN_CONNS}
+      HEALTH_CHECK_INTERVAL_IN_SECONDS: ${HEALTH_CHECK_INTERVAL_IN_SECONDS}
+      WEB_SERVER_ADDRESS: ${WEB_SERVER_ADDRESS}
+      WEB_SERVER_PORT: ${WEB_SERVER_PORT}
+      SHUTDOWN_TIMEOUT_IN_SECONDS: ${SHUTDOWN_TIMEOUT_IN_SECONDS}
+    ports:
+      - "${WEB_SERVER_PORT}:${WEB_SERVER_PORT}"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully

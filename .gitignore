@@ -39,7 +39,8 @@ coverage.out
 test-results.json
 
 # Default docker data location
-docker-data
+data/docker
 
 # Private data
 .env
+tmp
