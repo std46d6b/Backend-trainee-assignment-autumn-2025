@@ -11,7 +11,8 @@ import (
 var ErrDatabaseURLNotFound = errors.New("DATABASE_URL not found")
 
 type Config struct {
-	DBConfig *DBConfig
+	DBConfig        *DBConfig
+	WebServerConfig *WebServerConfig
 }
 
 type DBConfig struct {
@@ -19,6 +20,13 @@ type DBConfig struct {
 	MaxConns            int32
 	MinConns            int32
 	HealthCheckInterval time.Duration
+}
+
+type WebServerConfig struct {
+	Address string
+	Port    string
+
+	ShutdownTimeout time.Duration
 }
 
 func Load() (*Config, error) {
@@ -53,12 +61,37 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("HEALTH_CHECK_INTERVAL_IN_SECONDS parse error: %w", err)
 	}
 
+	webServerAddress, ok := os.LookupEnv("WEB_SERVER_ADDRESS")
+	if !ok {
+		return nil, ErrDatabaseURLNotFound
+	}
+
+	webServerPort, ok := os.LookupEnv("WEB_SERVER_PORT")
+	if !ok {
+		return nil, ErrDatabaseURLNotFound
+	}
+
+	shutdownTimeoutInSecondsStr, ok := os.LookupEnv("SHUTDOWN_TIMEOUT_IN_SECONDS")
+	if !ok {
+		return nil, errors.New("SHUTDOWN_TIMEOUT_IN_SECONDS not found")
+	}
+
+	shutdownTimeoutInSeconds, err := strconv.ParseInt(shutdownTimeoutInSecondsStr, 10, 64)
+	if err != nil {
+		return nil, ErrDatabaseURLNotFound
+	}
+
 	return &Config{
 		DBConfig: &DBConfig{
 			DatabaseURL:         databaseURL,
 			MaxConns:            int32(maxConns),
 			MinConns:            int32(minConns),
 			HealthCheckInterval: time.Duration(healthCheckIntervalInSeconds) * time.Second,
+		},
+		WebServerConfig: &WebServerConfig{
+			Address:         webServerAddress,
+			Port:            webServerPort,
+			ShutdownTimeout: time.Duration(shutdownTimeoutInSeconds) * time.Second,
 		},
 	}, nil
 }

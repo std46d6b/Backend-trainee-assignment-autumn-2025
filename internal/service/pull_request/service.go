@@ -143,7 +143,8 @@ func (s *PullRequestService) MergePullRequest(ctx context.Context, prID string) 
 	err := s.txManager.TxWrapper(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		localPullRequestRepo := s.repoFact.PullRequestRepository(tx)
 
-		pullRequest, err := localPullRequestRepo.GetByID(ctx, prID)
+		var err error
+		pullRequest, err = localPullRequestRepo.GetByID(ctx, prID)
 		if err != nil {
 			return fmt.Errorf("get pull request: %w", err)
 		}
@@ -156,8 +157,7 @@ func (s *PullRequestService) MergePullRequest(ctx context.Context, prID string) 
 		pullRequest.MergedAt = &now
 		pullRequest.Status = domain.PRStatusMerged
 
-		err = localPullRequestRepo.MergePullRequest(ctx, pullRequest)
-		if err != nil {
+		if err = localPullRequestRepo.MergePullRequest(ctx, pullRequest); err != nil {
 			return fmt.Errorf("service merge pull request: %w", err)
 		}
 
