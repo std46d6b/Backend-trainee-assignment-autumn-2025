@@ -17,9 +17,9 @@ type PullRequestService interface {
 }
 
 func RegisterPullRequestRoutes(e *echo.Echo, s PullRequestService) {
-	e.POST("/pullRequest/create", createPullRequestHandler(s))
-	e.POST("/pullRequest/merge", mergePullRequestHandler(s))
-	e.POST("/pullRequest/reassign", reassignPullRequestHandler(s))
+	e.POST("/pullRequest/create", deliveryhttp.AdminOnlyMiddleware(createPullRequestHandler(s)))
+	e.POST("/pullRequest/merge", deliveryhttp.AdminOnlyMiddleware(mergePullRequestHandler(s)))
+	e.POST("/pullRequest/reassign", deliveryhttp.AdminOnlyMiddleware(reassignPullRequestHandler(s)))
 }
 
 // createPullRequestHandler handles POST /pullRequest/create.

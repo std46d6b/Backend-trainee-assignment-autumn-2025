@@ -16,8 +16,8 @@ type UserService interface {
 }
 
 func RegisterUserRoutes(e *echo.Echo, s UserService) {
-	e.POST("/users/setIsActive", setIsActiveHandler(s))
-	e.GET("/users/getReview", getReviewHandler(s))
+	e.POST("/users/setIsActive", deliveryhttp.AdminOnlyMiddleware(setIsActiveHandler(s)))
+	e.GET("/users/getReview", deliveryhttp.AdminOrUserMiddleware(getReviewHandler(s)))
 }
 
 // setIsActiveHandler handles POST /users/setIsActive.

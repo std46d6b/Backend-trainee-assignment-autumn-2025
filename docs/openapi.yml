@@ -10,6 +10,20 @@ tags:
   - name: Health
 
 components:
+  securitySchemes:
+    AdminToken:
+      type: apiKey
+      in: header
+      name: X-Admin-Token
+      description: |
+        Админский токен. Значение берётся из переменной окружения `ADMIN_TOKEN`.
+    UserToken:
+      type: apiKey
+      in: header
+      name: X-User-Token
+      description: |
+        Пользовательский токен. Значение берётся из переменной окружения `USER_TOKEN`.
+
   parameters:
     TeamNameQuery:
       name: team_name
@@ -128,6 +142,8 @@ paths:
     post:
       tags: [Teams]
       summary: Создать команду с участниками (создаёт/обновляет пользователей)
+      security:
+        - AdminToken: []
       requestBody:
         required: true
         content:
@@ -172,6 +188,15 @@ paths:
                 error:
                   code: TEAM_EXISTS
                   message: team_name already exists
+        '401':
+          description: Нет/неверный админский токен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error:
+                  code: BAD_REQUEST
+                  message: invalid admin token
 
   /team/get:
     get:
@@ -198,6 +223,15 @@ paths:
                   - user_id: u2
                     username: Bob
                     is_active: true
+        '401':
+          description: Нет/неверный токен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error:
+                  code: BAD_REQUEST
+                  message: invalid token
         '404':
           description: Команда не найдена
           content:
