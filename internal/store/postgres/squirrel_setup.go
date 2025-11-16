@@ -2,4 +2,6 @@ package postgres
 
 import "github.com/Masterminds/squirrel"
 
-var Psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+func NewStatementBuilder() squirrel.StatementBuilderType {
+	return squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+}

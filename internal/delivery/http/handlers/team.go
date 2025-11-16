@@ -20,7 +20,7 @@ func RegisterTeamRoutes(e *echo.Group, s TeamService) {
 	e.GET("/team/get", getTeamHandler(s))
 }
 
-// POST /team/add
+// createTeamHandler handles POST /team/add.
 func createTeamHandler(s TeamService) echo.HandlerFunc {
 	type requestBody = dto.TeamDTO
 	type responseBody struct {
@@ -47,7 +47,7 @@ func createTeamHandler(s TeamService) echo.HandlerFunc {
 	}
 }
 
-// GET /team/get
+// getTeamHandler handles GET /team/get.
 func getTeamHandler(s TeamService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		teamName := c.QueryParam("team_name")

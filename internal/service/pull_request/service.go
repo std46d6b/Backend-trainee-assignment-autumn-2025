@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -51,17 +52,21 @@ func shuffleTeamMembers(teamMembers []domain.TeamMember) []domain.TeamMember {
 	return res
 }
 
-func (s *PullRequestService) getTeamByUserID(ctx context.Context, exec postgres.Execer, userID string) (domain.TeamUpsert, error) {
+func (s *PullRequestService) getTeamByUserID(
+	ctx context.Context,
+	exec postgres.Execer,
+	userID string,
+) (domain.TeamUpsert, error) {
 	localUserRepo := s.repoFact.UserRepository(exec)
 
-	pull_request_author, err := localUserRepo.GetByID(ctx, userID)
+	pullRequestAuthor, err := localUserRepo.GetByID(ctx, userID)
 	if err != nil {
 		return domain.TeamUpsert{}, fmt.Errorf("get author: %w", err)
 	}
 
 	localTeamRepo := s.repoFact.TeamRepository(exec)
 
-	team, err := localTeamRepo.GetTeamWithMembers(ctx, pull_request_author.TeamName)
+	team, err := localTeamRepo.GetTeamWithMembers(ctx, pullRequestAuthor.TeamName)
 	if err != nil {
 		return domain.TeamUpsert{}, fmt.Errorf("get team: %w", err)
 	}
@@ -82,7 +87,7 @@ func (s *PullRequestService) assignReviewers(ctx context.Context, exec postgres.
 
 	for _, member := range teamMembers {
 		if member.UserID != pr.AuthorID && member.IsActive {
-			err := localPullRequestRepo.AddReviewer(ctx, pr.ID, member.UserID)
+			err = localPullRequestRepo.AddReviewer(ctx, pr.ID, member.UserID)
 			if err != nil {
 				return fmt.Errorf("assign reviewer: %w", err)
 			}
@@ -97,7 +102,9 @@ func (s *PullRequestService) assignReviewers(ctx context.Context, exec postgres.
 	return nil
 }
 
+// CreatePullRequest may be used for
 // POST /pullRequest/create
+// creates pull request.
 func (s *PullRequestService) CreatePullRequest(ctx context.Context, pr domain.PullRequest) (domain.PullRequest, error) {
 	var dbPullRequest domain.PullRequest
 
@@ -136,7 +143,9 @@ func (s *PullRequestService) CreatePullRequest(ctx context.Context, pr domain.Pu
 	return dbPullRequest, nil
 }
 
+// MergePullRequest may be used for
 // POST /pullRequest/merge
+// merges pull request.
 func (s *PullRequestService) MergePullRequest(ctx context.Context, prID string) (domain.PullRequest, error) {
 	var pullRequest domain.PullRequest
 
@@ -171,8 +180,44 @@ func (s *PullRequestService) MergePullRequest(ctx context.Context, prID string) 
 	return pullRequest, nil
 }
 
+func (s *PullRequestService) reassignRewiewer(
+	ctx context.Context,
+	tx pgx.Tx,
+	pr domain.PullRequest,
+	prID string,
+	oldReviewerID string,
+	localPullRequestRepo repository.PullRequestRepository,
+) (string, error) {
+	team, err := s.getTeamByUserID(ctx, tx, oldReviewerID)
+	if err != nil {
+		return "", fmt.Errorf("get team: %w", err)
+	}
+
+	for _, member := range team.Members {
+		if member.IsActive && member.UserID != oldReviewerID && member.UserID != pr.AuthorID {
+			isInReviewers := slices.Contains(pr.AssignedReviewers, member.UserID)
+			if !isInReviewers {
+				err = localPullRequestRepo.AddReviewer(ctx, prID, member.UserID)
+				if err != nil {
+					return "", fmt.Errorf("assign reviewer: %w", err)
+				}
+
+				return member.UserID, nil
+			}
+		}
+	}
+
+	return "", domain.NewError(domain.ErrCodeNoCandidate, "no active replacement candidate in team")
+}
+
+// ReassignPullRequest merges pull request
 // POST /pullRequest/reassign
-func (s *PullRequestService) ReassignPullRequest(ctx context.Context, prID string, oldReviewerID string) (domain.PullRequest, string, error) {
+// reassigns pull request.
+func (s *PullRequestService) ReassignPullRequest(
+	ctx context.Context,
+	prID string,
+	oldReviewerID string,
+) (domain.PullRequest, string, error) {
 	var pullRequest domain.PullRequest
 	var reassignedUserID string
 
@@ -192,7 +237,7 @@ func (s *PullRequestService) ReassignPullRequest(ctx context.Context, prID strin
 		}
 
 		if pr.Status == domain.PRStatusMerged {
-			return domain.NewDomainError(domain.ErrCodePRMerged, "cannot reassign on merged PR")
+			return domain.NewError(domain.ErrCodePRMerged, "cannot reassign on merged PR")
 		}
 
 		err = localPullRequestRepo.RemoveReviewer(ctx, prID, oldReviewerID)
@@ -200,36 +245,9 @@ func (s *PullRequestService) ReassignPullRequest(ctx context.Context, prID strin
 			return fmt.Errorf("remove reviewer: %w", err)
 		}
 
-		team, err := s.getTeamByUserID(ctx, tx, oldReviewerID)
+		reassignedUserID, err = s.reassignRewiewer(ctx, tx, pr, prID, oldReviewerID, localPullRequestRepo)
 		if err != nil {
-			return fmt.Errorf("get team: %w", err)
-		}
-
-		reassignedUserIsSet := false
-		for _, member := range team.Members {
-			if member.IsActive && member.UserID != oldReviewerID && member.UserID != pr.AuthorID {
-				isInReviewers := false
-				for _, reviewerID := range pr.AssignedReviewers {
-					if reviewerID == member.UserID {
-						isInReviewers = true
-						break
-					}
-				}
-				if !isInReviewers {
-					err := localPullRequestRepo.AddReviewer(ctx, prID, member.UserID)
-					if err != nil {
-						return fmt.Errorf("assign reviewer: %w", err)
-					}
-
-					reassignedUserID = member.UserID
-					reassignedUserIsSet = true
-					break
-				}
-			}
-		}
-
-		if !reassignedUserIsSet {
-			return domain.NewDomainError(domain.ErrCodeNoCandidate, "no active replacement candidate in team")
+			return fmt.Errorf("reassign reviewer: %w", err)
 		}
 
 		pullRequest, err = localPullRequestRepo.GetByID(ctx, prID)

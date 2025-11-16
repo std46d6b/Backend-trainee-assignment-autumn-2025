@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/domain"
@@ -12,15 +13,16 @@ import (
 )
 
 type PullRequestRepo struct {
-	exec pg.Execer
+	exec    pg.Execer
+	builder squirrel.StatementBuilderType
 }
 
-func NewPullRequestRepo(exec pg.Execer) *PullRequestRepo {
-	return &PullRequestRepo{exec: exec}
+func NewPullRequestRepo(exec pg.Execer, builder squirrel.StatementBuilderType) *PullRequestRepo {
+	return &PullRequestRepo{exec: exec, builder: builder}
 }
 
 func (r *PullRequestRepo) InsertPullRequest(ctx context.Context, pullRequest domain.PullRequest) error {
-	query := pg.Psql.
+	query := r.builder.
 		Insert("pull_requests").
 		Columns("pull_request_id", "pull_request_name", "author_id").
 		Values(pullRequest.ID, pullRequest.Name, pullRequest.AuthorID)
@@ -34,20 +36,23 @@ func (r *PullRequestRepo) InsertPullRequest(ctx context.Context, pullRequest dom
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return domain.NewDomainError(domain.ErrCodePRExists, fmt.Sprintf("pull request %s already exists", pullRequest.ID))
+			return domain.NewError(
+				domain.ErrCodePRExists,
+				fmt.Sprintf("pull request %s already exists", pullRequest.ID),
+			)
 		}
 		return fmt.Errorf("error executing query: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("no rows affected")
+		return errors.New("no rows affected")
 	}
 
 	return nil
 }
 
 func (r *PullRequestRepo) getPRBodyData(ctx context.Context, pullRequestID string) (domain.PullRequest, error) {
-	query := pg.Psql.
+	query := r.builder.
 		Select(
 			"pull_request_id",
 			"pull_request_name",
@@ -76,7 +81,8 @@ func (r *PullRequestRepo) getPRBodyData(ctx context.Context, pullRequestID strin
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.PullRequest{}, domain.NewDomainError(domain.ErrCodeNotFound, fmt.Sprintf("pull request %s not found", pullRequestID))
+			return domain.PullRequest{},
+				domain.NewError(domain.ErrCodeNotFound, fmt.Sprintf("pull request %s not found", pullRequestID))
 		}
 
 		return domain.PullRequest{}, fmt.Errorf("error executing query: %w", err)
@@ -85,8 +91,11 @@ func (r *PullRequestRepo) getPRBodyData(ctx context.Context, pullRequestID strin
 	return pr, nil
 }
 
-func (r *PullRequestRepo) addReviewersIDs(ctx context.Context, pullRequest domain.PullRequest) (domain.PullRequest, error) {
-	query := pg.Psql.
+func (r *PullRequestRepo) addReviewersIDs(
+	ctx context.Context,
+	pullRequest domain.PullRequest,
+) (domain.PullRequest, error) {
+	query := r.builder.
 		Select("user_id").
 		From("assigned_reviewers").
 		Where("pull_request_id = ?", pullRequest.ID)
@@ -105,7 +114,7 @@ func (r *PullRequestRepo) addReviewersIDs(ctx context.Context, pullRequest domai
 
 	for rows.Next() {
 		var reviewerID string
-		err := rows.Scan(&reviewerID)
+		err = rows.Scan(&reviewerID)
 		if err != nil {
 			return domain.PullRequest{}, fmt.Errorf("error scanning row: %w", err)
 		}
@@ -130,7 +139,7 @@ func (r *PullRequestRepo) GetByID(ctx context.Context, pullRequestID string) (do
 }
 
 func (r *PullRequestRepo) AddReviewer(ctx context.Context, pullRequestID string, reviewerID string) error {
-	query := pg.Psql.
+	query := r.builder.
 		Insert("assigned_reviewers").
 		Columns("pull_request_id", "user_id").
 		Values(pullRequestID, reviewerID)
@@ -146,14 +155,14 @@ func (r *PullRequestRepo) AddReviewer(ctx context.Context, pullRequestID string,
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("no rows affected")
+		return errors.New("no rows affected")
 	}
 
 	return nil
 }
 
 func (r *PullRequestRepo) RemoveReviewer(ctx context.Context, pullRequestID string, reviewerID string) error {
-	query := pg.Psql.
+	query := r.builder.
 		Delete("assigned_reviewers").
 		Where("pull_request_id = ?", pullRequestID).
 		Where("user_id = ?", reviewerID)
@@ -169,14 +178,14 @@ func (r *PullRequestRepo) RemoveReviewer(ctx context.Context, pullRequestID stri
 	}
 
 	if tag.RowsAffected() == 0 {
-		return domain.NewDomainError(domain.ErrCodeNotAssigned, "incomplete removal")
+		return domain.NewError(domain.ErrCodeNotAssigned, "incomplete removal")
 	}
 
 	return nil
 }
 
 func (r *PullRequestRepo) MergePullRequest(ctx context.Context, pullRequest domain.PullRequest) error {
-	query := pg.Psql.
+	query := r.builder.
 		Update("pull_requests").
 		Set("status", pullRequest.Status).
 		Set("merged_at", pullRequest.MergedAt).
@@ -193,7 +202,7 @@ func (r *PullRequestRepo) MergePullRequest(ctx context.Context, pullRequest doma
 	}
 
 	if tag.RowsAffected() == 0 {
-		return domain.NewDomainError(domain.ErrCodeNotFound, fmt.Sprintf("pull request %s not found", pullRequest.ID))
+		return domain.NewError(domain.ErrCodeNotFound, fmt.Sprintf("pull request %s not found", pullRequest.ID))
 	}
 
 	return nil

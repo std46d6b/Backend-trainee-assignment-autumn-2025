@@ -10,7 +10,7 @@ import (
 )
 
 func HandleError(c echo.Context, err error) error {
-	var domainError *domain.DomainError
+	var domainError *domain.Error
 
 	if errors.As(err, &domainError) {
 		status := httpStatusCodeMapper(domainError.Code)

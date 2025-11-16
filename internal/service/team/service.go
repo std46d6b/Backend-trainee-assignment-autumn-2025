@@ -37,7 +37,9 @@ func NewTeamService(
 	}
 }
 
+// CreateTeam may be used for
 // POST /team/add
+// creates team.
 func (s *TeamService) CreateTeam(ctx context.Context, up domain.TeamUpsert) (domain.TeamUpsert, error) {
 	err := s.txManager.TxWrapper(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		localTeamRepo := s.repoFact.TeamRepository(tx)
@@ -72,7 +74,9 @@ func (s *TeamService) CreateTeam(ctx context.Context, up domain.TeamUpsert) (dom
 	return up, nil
 }
 
+// GetTeamWithMembers may be used for
 // GET /team/get
+// returns team with members.
 func (s *TeamService) GetTeamWithMembers(ctx context.Context, teamName string) (domain.TeamUpsert, error) {
 	localTeamRepo := s.repoFact.TeamRepository(s.readExec)
 

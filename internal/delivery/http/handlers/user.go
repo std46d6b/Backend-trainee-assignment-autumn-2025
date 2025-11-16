@@ -20,7 +20,7 @@ func RegisterUserRoutes(e *echo.Echo, s UserService) {
 	e.GET("/users/getReview", getReviewHandler(s))
 }
 
-// POST /users/setIsActive
+// setIsActiveHandler handles POST /users/setIsActive.
 func setIsActiveHandler(s UserService) echo.HandlerFunc {
 	type requestBody struct {
 		UserID   string `json:"user_id"`
@@ -52,10 +52,10 @@ func setIsActiveHandler(s UserService) echo.HandlerFunc {
 	}
 }
 
-// GET /users/getReview
+// getReviewHandler handles GET /users/getReview.
 func getReviewHandler(s UserService) echo.HandlerFunc {
 	type responseBody struct {
-		UserId       string                    `json:"user_id"`
+		UserID       string                    `json:"user_id"`
 		PullRequests []dto.PullRequestShortDTO `json:"pull_requests"`
 	}
 
@@ -78,7 +78,7 @@ func getReviewHandler(s UserService) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, responseBody{
-			UserId:       userID,
+			UserID:       userID,
 			PullRequests: pullRequestShorts,
 		})
 	}

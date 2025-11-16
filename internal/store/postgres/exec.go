@@ -8,7 +8,7 @@ import (
 )
 
 type Execer interface {
-	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
-	Query(ctx context.Context, sql string, arguments ...interface{}) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, arguments ...interface{}) pgx.Row
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, arguments ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, arguments ...any) pgx.Row
 }

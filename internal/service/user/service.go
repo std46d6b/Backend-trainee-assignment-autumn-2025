@@ -36,7 +36,9 @@ func NewUserService(
 	}
 }
 
+// SetIsActive may be used for
 // POST /users/setIsActive
+// sets isActive for user.
 func (s *UserService) SetIsActive(ctx context.Context, userID string, isActive bool) (domain.User, error) {
 	var dbUser domain.User
 
@@ -63,7 +65,9 @@ func (s *UserService) SetIsActive(ctx context.Context, userID string, isActive b
 	return dbUser, nil
 }
 
+// ListReviewPRs may be used for
 // GET /users/getReview
+// returns list of pull requests assigned to user.
 func (s *UserService) ListReviewPRs(ctx context.Context, userID string) ([]domain.PullRequest, error) {
 	locaUserRepo := s.repoFact.UserRepository(s.readExec)
 

@@ -23,7 +23,7 @@ func NewPool(ctx context.Context, cfg *config.DBConfig) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("error creating pool: %w", err)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
+	if err = pool.Ping(ctx); err != nil {
 		pool.Close()
 		return nil, fmt.Errorf("error pinging database: %w", err)
 	}

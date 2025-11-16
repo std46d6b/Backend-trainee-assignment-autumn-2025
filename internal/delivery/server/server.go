@@ -6,7 +6,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/delivery/http/handlers"
-	// teamservice "github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/service/team"
 )
 
 type Server struct {

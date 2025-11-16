@@ -6,21 +6,23 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/domain"
 	pg "github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/store/postgres"
 )
 
 type TeamRepo struct {
-	exec pg.Execer
+	exec    pg.Execer
+	builder squirrel.StatementBuilderType
 }
 
-func NewTeamRepo(exec pg.Execer) *TeamRepo {
-	return &TeamRepo{exec: exec}
+func NewTeamRepo(exec pg.Execer, builder squirrel.StatementBuilderType) *TeamRepo {
+	return &TeamRepo{exec: exec, builder: builder}
 }
 
 func (r *TeamRepo) InsertTeam(ctx context.Context, teamName string) error {
-	query := pg.Psql.
+	query := r.builder.
 		Insert("teams").
 		Columns("team_name").
 		Values(teamName)
@@ -34,7 +36,7 @@ func (r *TeamRepo) InsertTeam(ctx context.Context, teamName string) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return domain.NewDomainError(domain.ErrCodeTeamExists, fmt.Sprintf("team %s already exists", teamName))
+			return domain.NewError(domain.ErrCodeTeamExists, fmt.Sprintf("team %s already exists", teamName))
 		}
 		return fmt.Errorf("error executing query: %w", err)
 	}
@@ -43,7 +45,7 @@ func (r *TeamRepo) InsertTeam(ctx context.Context, teamName string) error {
 }
 
 func (r *TeamRepo) GetTeamWithMembers(ctx context.Context, teamName string) (domain.TeamUpsert, error) {
-	query := pg.Psql.
+	query := r.builder.
 		Select("u.user_id", "u.username", "u.is_active").
 		From("teams t").
 		LeftJoin("users u ON u.team_name = t.team_name").
@@ -89,12 +91,12 @@ func (r *TeamRepo) GetTeamWithMembers(ctx context.Context, teamName string) (dom
 		}
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return domain.TeamUpsert{}, fmt.Errorf("error scanning members: %w", err)
 	}
 
 	if !seenAnyRow {
-		return domain.TeamUpsert{}, domain.NewDomainError(domain.ErrCodeNotFound, fmt.Sprintf("team %s not found", teamName))
+		return domain.TeamUpsert{}, domain.NewError(domain.ErrCodeNotFound, fmt.Sprintf("team %s not found", teamName))
 	}
 
 	return domain.TeamUpsert{

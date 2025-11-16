@@ -11,18 +11,18 @@ const (
 	ErrCodeNotFound    ErrorCode = "NOT_FOUND"
 )
 
-type DomainError struct {
+type Error struct {
 	Code    ErrorCode
 	Message string
 }
 
-func (e *DomainError) Error() string {
-	return string(e.Code) + ": " + e.Message
-}
-
-func NewDomainError(code ErrorCode, message string) *DomainError {
-	return &DomainError{
+func NewError(code ErrorCode, message string) *Error {
+	return &Error{
 		Code:    code,
 		Message: message,
 	}
+}
+
+func (e *Error) Error() string {
+	return string(e.Code) + ": " + e.Message
 }

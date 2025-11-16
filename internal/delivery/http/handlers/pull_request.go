@@ -22,7 +22,7 @@ func RegisterPullRequestRoutes(e *echo.Echo, s PullRequestService) {
 	e.POST("/pullRequest/reassign", reassignPullRequestHandler(s))
 }
 
-// POST /pullRequest/create
+// createPullRequestHandler handles POST /pullRequest/create.
 func createPullRequestHandler(s PullRequestService) echo.HandlerFunc {
 	type requestBody = dto.PullRequestDTO
 	type responseBody struct {
@@ -52,7 +52,7 @@ func createPullRequestHandler(s PullRequestService) echo.HandlerFunc {
 	}
 }
 
-// POST /pullRequest/merge
+// mergePullRequestHandler handles POST /pullRequest/merge.
 func mergePullRequestHandler(s PullRequestService) echo.HandlerFunc {
 	type requestBody struct {
 		PullRequestID string `json:"pull_request_id"`
@@ -83,11 +83,11 @@ func mergePullRequestHandler(s PullRequestService) echo.HandlerFunc {
 	}
 }
 
-// POST /pullRequest/reassign
+// reassignPullRequestHandler handles POST /pullRequest/reassign.
 func reassignPullRequestHandler(s PullRequestService) echo.HandlerFunc {
 	type requestBody struct {
 		PullRequestID string `json:"pull_request_id"`
-		OldUserId     string `json:"old_user_id"`
+		OldUserID     string `json:"old_user_id"`
 	}
 	type responseBody struct {
 		PullRequest dto.PullRequestDTO `json:"pr"`
@@ -101,11 +101,14 @@ func reassignPullRequestHandler(s PullRequestService) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, dto.NewErrorResponse("BAD_REQUEST", "invalid JSON body"))
 		}
 
-		if req.PullRequestID == "" || req.OldUserId == "" {
-			return c.JSON(http.StatusBadRequest, dto.NewErrorResponse("BAD_REQUEST", "pull_request_id and old_user_id are required"))
+		if req.PullRequestID == "" || req.OldUserID == "" {
+			return c.JSON(
+				http.StatusBadRequest,
+				dto.NewErrorResponse("BAD_REQUEST", "pull_request_id and old_user_id are required"),
+			)
 		}
 
-		pr, replacedBy, err := s.ReassignPullRequest(c.Request().Context(), req.PullRequestID, req.OldUserId)
+		pr, replacedBy, err := s.ReassignPullRequest(c.Request().Context(), req.PullRequestID, req.OldUserID)
 		if err != nil {
 			return deliveryhttp.HandleError(c, err)
 		}
