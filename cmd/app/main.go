@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/config"
 	"github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/delivery/server"
 	pullrequestservice "github.com/std46d6b/Backend-trainee-assignment-autumn-2025/internal/service/pull_request"
@@ -18,6 +20,11 @@ import (
 )
 
 func main() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal()
@@ -32,7 +39,8 @@ func main() {
 	defer pool.Close()
 
 	txManager := postgres.NewTxManager(pool)
-	repoFactory := postgresrepo.NewRepoFactory()
+	builder := postgres.NewStatementBuilder()
+	repoFactory := postgresrepo.NewRepoFactory(builder)
 
 	teamService := teamservice.NewTeamService(txManager, pool, repoFactory)
 	userService := userservice.NewUserService(txManager, pool, repoFactory)
@@ -41,7 +49,7 @@ func main() {
 	server := server.NewServer(teamService, userService, pullRequestService)
 
 	go func() {
-		err = server.Start(cfg.WebServerConfig.Address + ":" + cfg.WebServerConfig.Port)
+		err = server.Start(fmt.Sprintf("%s:%d", cfg.WebServerConfig.Address, cfg.WebServerConfig.Port))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -54,10 +62,11 @@ func main() {
 	log.Println("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.WebServerConfig.ShutdownTimeout)
+
 	defer cancel()
 
-	if err := server.Stop(ctx); err != nil {
-		log.Fatal(err)
+	if err = server.Stop(ctx); err != nil {
+		log.Printf("error stopping server: %v\n", err)
 	}
 
 	log.Println("Server stopped")
